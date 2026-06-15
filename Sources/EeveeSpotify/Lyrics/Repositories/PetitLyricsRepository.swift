@@ -108,7 +108,7 @@ class PetitLyricsRepository: LyricsRepository {
                 lines: lyrics.lines.map {
                     LyricsLineDto(
                         words: $0.linestring,
-                        startTimeMs: $0.words.first?.starttime ?? 0
+                        startTimeMs: Int64($0.words.first?.starttime ?? 0)
                     )
                 },
                 timeSynced: true,
