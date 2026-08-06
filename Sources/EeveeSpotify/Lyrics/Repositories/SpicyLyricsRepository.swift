@@ -2,6 +2,9 @@ import Foundation
 
 class SpicyLyricsRepository: LyricsRepository {
     
+    static let shared = SpicyLyricsRepository()
+    private init() {}
+    
     private let session = URLSession.shared
     private let baseURL = "https://api.spicelyrics.com"  // 替换为实际 URL
     
