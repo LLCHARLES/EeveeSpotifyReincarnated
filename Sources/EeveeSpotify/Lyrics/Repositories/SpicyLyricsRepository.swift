@@ -1,7 +1,7 @@
 import Foundation
 
 class SpicyLyricsRepository: LyricsRepository {
-
+    
     static let shared = SpicyLyricsRepository()
     private init() {
         let config = URLSessionConfiguration.ephemeral
@@ -14,12 +14,9 @@ class SpicyLyricsRepository: LyricsRepository {
     }
 
     private let session: URLSession
-
     private static let apiUrl        = "https://api.spicylyrics.org"
     private static let authHeaderKey = "SpicyLyrics-WebAuth"
     private static let clientVersion = "6.1.1"
-
-    // MARK: - Token wait
 
     private func waitForToken(timeout: TimeInterval = 5.0) -> String? {
         if let token = spotifyAccessToken { return token }
@@ -32,8 +29,6 @@ class SpicyLyricsRepository: LyricsRepository {
         return nil
     }
 
-    // MARK: - Network
-
     private func performQuery(trackId: String) throws -> Data {
         guard let url = URL(string: "\(SpicyLyricsRepository.apiUrl)/query") else {
             throw LyricsError.decodingError
@@ -43,8 +38,9 @@ class SpicyLyricsRepository: LyricsRepository {
             "queries": [
                 [
                     "operation": "lyrics",
+                    "operationId": "0",
                     "variables": [
-                        "id":   trackId,
+                        "id": trackId,
                         "auth": SpicyLyricsRepository.authHeaderKey
                     ]
                 ]
@@ -75,9 +71,6 @@ class SpicyLyricsRepository: LyricsRepository {
 
         if let token = waitForToken() {
             request.setValue("Bearer \(token)", forHTTPHeaderField: SpicyLyricsRepository.authHeaderKey)
-            writeDebugLog("[SpicyLyrics] Using captured token for \(trackId)")
-        } else {
-            writeDebugLog("[SpicyLyrics] No token available for \(trackId) — proceeding unauthenticated")
         }
 
         request.httpBody = try? JSONSerialization.data(withJSONObject: body)
@@ -95,32 +88,20 @@ class SpicyLyricsRepository: LyricsRepository {
         semaphore.wait()
 
         if let error = responseError {
-            writeDebugLog("[SpicyLyrics] Network error for \(trackId): \(error)")
             throw error
         }
         guard let data = responseData else {
-            writeDebugLog("[SpicyLyrics] No data for \(trackId)")
             throw LyricsError.decodingError
         }
-        writeDebugLog("[SpicyLyrics] Received \(data.count) bytes for track \(trackId)")
         return data
     }
 
-    // MARK: - LyricsRepository
-
-func getLyrics(_ query: LyricsSearchQuery, options: LyricsOptions) throws -> LyricsDto {
-    let trackId = query.spotifyTrackId
-    writeDebugLog("[SpicyLyrics] 🔍 请求歌词: trackId=\(trackId), title=\(query.title), artist=\(query.primaryArtist)")
-    
-    guard !trackId.isEmpty else {
-        writeDebugLog("[SpicyLyrics] ❌ 空 track ID")
-        throw LyricsError.noSuchSong
+    func getLyrics(_ query: LyricsSearchQuery, options: LyricsOptions) throws -> LyricsDto {
+        let trackId = query.spotifyTrackId
+        guard !trackId.isEmpty else {
+            throw LyricsError.noSuchSong
+        }
+        let data = try performQuery(trackId: trackId)
+        return try SpicyLyricsParser.parseLyrics(from: data)
     }
-    
-    let data = try performQuery(trackId: trackId)
-    writeDebugLog("[SpicyLyrics] 📥 收到数据，开始解析")
-    let result = try SpicyLyricsParser.parseLyrics(from: data)
-    writeDebugLog("[SpicyLyrics] ✅ 解析成功，返回 \(result.lines.count) 行")
-    return result
-}
 }
