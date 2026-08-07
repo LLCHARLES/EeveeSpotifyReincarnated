@@ -16,75 +16,81 @@ struct SpicyLyricsParser {
     /// 解析 SpicyLyrics 的 SLObjPack 数据，转换成 LyricsDto
     /// 适配上游 API 格式：queries[0].result.data
     static func parseLyrics(from rawData: Data) throws -> LyricsDto {
-        // 1. 解码 JSON
-        let json = try JSONSerialization.jsonObject(with: rawData)
-        
-        guard let dict = json as? [String: Any] else {
-            throw SpicyLyricsParserError.invalidData
-        }
-        
-        // 2. 提取 queries 数组
-        guard let queries = dict["queries"] as? [[String: Any]] else {
-            throw SpicyLyricsParserError.invalidData
-        }
-        
-        // 3. 查找 operationId == "0" 的查询结果
-        guard let matchedQuery = queries.first(where: { ($0["operationId"] as? String) == "0" }),
-              let result = matchedQuery["result"] as? [String: Any] else {
-            throw SpicyLyricsParserError.noMatchingQuery
-        }
-        
-        // 4. 检查 HTTP 状态码
-        let httpStatus = result["httpStatus"] as? Int ?? 0
-        switch httpStatus {
-        case 200:
-            break // 成功，继续
-        case 404:
-            throw LyricsError.noSuchSong
-        case 401, 403:
-            spotifyAccessToken = nil
-            throw LyricsError.noSuchSong
-        default:
-            if httpStatus >= 400 {
-                throw SpicyLyricsParserError.httpError(httpStatus)
-            }
-        }
-        
-        // 5. 提取 data 字段（ObjPack 格式）
-        guard let data = result["data"] else {
-            throw SpicyLyricsParserError.invalidData
-        }
-        
-        // 6. 用 SLObjPack 解包
-        let unpacked = try SLObjPack.unpack(data)
-        
-        // 7. 提取 lyrics 对象
-        guard let lyricsObj = unpacked["lyrics"]?.objectValue else {
-            throw SpicyLyricsParserError.missingLyrics
-        }
-        
-        // 8. 提取 type 字段，判断歌词类型
-        let type = lyricsObj["Type"]?.stringValue ?? "Static"
-        
-        // 9. 根据类型解析
-        let dto: LyricsDto
-        switch type {
-        case "Syllable":
-            dto = parseSyllableLyrics(lyricsObj)
-        case "Line":
-            dto = parseLineLyrics(lyricsObj)
-        default:
-            dto = parseStaticLyrics(lyricsObj)
-        }
+    writeDebugLog("[SpicyLyrics] 📥 开始解析，数据大小: \(rawData.count) 字节")
     
-    // ✅ 加日志：打印解析结果
-        print("[SpicyLyrics] ✅ 解析完成：\(dto.lines.count) 行，isSyllableSynced=\(dto.isSyllableSynced)")
-        for (index, line) in dto.lines.enumerated() {
-            print("[SpicyLyrics]   第\(index+1)行: words=\(line.words), syllables=\(line.syllables?.count ?? 0)")
-        }
+    // 1. 解码 JSON
+    let json = try JSONSerialization.jsonObject(with: rawData)
+    writeDebugLog("[SpicyLyrics] 📄 JSON 解码成功")
     
-        return dto
+    guard let dict = json as? [String: Any] else {
+        writeDebugLog("[SpicyLyrics] ❌ 顶层不是字典")
+        throw SpicyLyricsParserError.invalidData
     }
+    writeDebugLog("[SpicyLyrics] 📄 顶层 keys: \(dict.keys.joined(separator: ", "))")
+    
+    // 2. 提取 queries 数组
+    guard let queries = dict["queries"] as? [[String: Any]] else {
+        writeDebugLog("[SpicyLyrics] ❌ 没有 queries 数组")
+        throw SpicyLyricsParserError.invalidData
+    }
+    writeDebugLog("[SpicyLyrics] 📄 queries 数量: \(queries.count)")
+    
+    // 3. 查找 operationId == "0"
+    guard let matchedQuery = queries.first(where: { ($0["operationId"] as? String) == "0" }),
+          let result = matchedQuery["result"] as? [String: Any] else {
+        writeDebugLog("[SpicyLyrics] ❌ 没有匹配的 operationId=0")
+        throw SpicyLyricsParserError.noMatchingQuery
+    }
+    writeDebugLog("[SpicyLyrics] 📄 result keys: \(result.keys.joined(separator: ", "))")
+    
+    // 4. 检查 HTTP 状态码
+    let httpStatus = result["httpStatus"] as? Int ?? 0
+    writeDebugLog("[SpicyLyrics] 📡 HTTP status: \(httpStatus)")
+    
+    // 5. 提取 data 字段
+    guard let data = result["data"] else {
+        writeDebugLog("[SpicyLyrics] ❌ 没有 data 字段")
+        throw SpicyLyricsParserError.invalidData
+    }
+    writeDebugLog("[SpicyLyrics] 📦 data 类型: \(type(of: data))")
+    
+    // 6. 用 SLObjPack 解包
+    let unpacked = try SLObjPack.unpack(data)
+    writeDebugLog("[SpicyLyrics] 🔓 SLObjPack 解包成功")
+    
+    // 7. 提取 lyrics 对象
+    guard let lyricsObj = unpacked["lyrics"]?.objectValue else {
+        writeDebugLog("[SpicyLyrics] ❌ 没有 lyrics 对象")
+        writeDebugLog("[SpicyLyrics] 📦 unpacked keys: \(unpacked.objectValue?.keys.joined(separator: ", ") ?? "nil")")
+        throw SpicyLyricsParserError.missingLyrics
+    }
+    writeDebugLog("[SpicyLyrics] 📝 lyricsObj keys: \(lyricsObj.keys.joined(separator: ", "))")
+    
+    // 8. 提取 type 字段
+    let type = lyricsObj["Type"]?.stringValue ?? "Static"
+    writeDebugLog("[SpicyLyrics] 🏷️ Lyrics type: \(type)")
+    
+    // 9. 根据类型解析
+    let dto: LyricsDto
+    switch type {
+    case "Syllable":
+        writeDebugLog("[SpicyLyrics] 🔍 开始解析 Syllable 逐字歌词")
+        dto = parseSyllableLyrics(lyricsObj)
+    case "Line":
+        writeDebugLog("[SpicyLyrics] 🔍 开始解析 Line 逐行歌词")
+        dto = parseLineLyrics(lyricsObj)
+    default:
+        writeDebugLog("[SpicyLyrics] 🔍 开始解析 Static 静态歌词")
+        dto = parseStaticLyrics(lyricsObj)
+    }
+    
+    writeDebugLog("[SpicyLyrics] ✅ 解析完成：\(dto.lines.count) 行，isSyllableSynced=\(dto.isSyllableSynced)")
+    for (index, line) in dto.lines.enumerated() {
+        writeDebugLog("[SpicyLyrics]   第\(index+1)行: words=\(line.words), syllables=\(line.syllables?.count ?? 0)")
+    }
+    
+    return dto
+}
     
     // MARK: - Syllable 逐字歌词解析
     

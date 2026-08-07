@@ -108,18 +108,19 @@ class SpicyLyricsRepository: LyricsRepository {
 
     // MARK: - LyricsRepository
 
-    func getLyrics(_ query: LyricsSearchQuery, options: LyricsOptions) throws -> LyricsDto {
-        let trackId = query.spotifyTrackId
-        guard !trackId.isEmpty else {
-            writeDebugLog("[SpicyLyrics] Empty track ID")
-            throw LyricsError.noSuchSong
-        }
-        let data = try performQuery(trackId: trackId)
-        let dto = try SpicyLyricsParser.parseLyrics(from: data)
+func getLyrics(_ query: LyricsSearchQuery, options: LyricsOptions) throws -> LyricsDto {
+    let trackId = query.spotifyTrackId
+    writeDebugLog("[SpicyLyrics] 🔍 请求歌词: trackId=\(trackId), title=\(query.title), artist=\(query.primaryArtist)")
     
-    // ✅ 加日志
-        print("[SpicyLyrics] ✅ 返回 LyricsDto，行数: \(dto.lines.count)，isSyllableSynced=\(dto.isSyllableSynced)")
-    
-        return dto
+    guard !trackId.isEmpty else {
+        writeDebugLog("[SpicyLyrics] ❌ 空 track ID")
+        throw LyricsError.noSuchSong
     }
+    
+    let data = try performQuery(trackId: trackId)
+    writeDebugLog("[SpicyLyrics] 📥 收到数据，开始解析")
+    let result = try SpicyLyricsParser.parseLyrics(from: data)
+    writeDebugLog("[SpicyLyrics] ✅ 解析成功，返回 \(result.lines.count) 行")
+    return result
+}
 }

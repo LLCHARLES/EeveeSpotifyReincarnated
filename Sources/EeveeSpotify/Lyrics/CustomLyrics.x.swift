@@ -235,6 +235,7 @@ private func loadCustomLyricsForCurrentTrack() throws -> ColorLyricsResponse {
     case .petit:
         repository = petitLyricsRepository
     case .spicylyrics:
+        writeDebugLog("[SpicyLyrics] 🎯 使用 SpicyLyricsRepository")
         repository = SpicyLyricsRepository.shared
     case .notReplaced:
         throw LyricsError.invalidSource
@@ -387,7 +388,8 @@ func prefetchLyricsIfNeeded(trackId: String) {
 
 func getLyricsDataForCurrentTrack(_ originalPath: String, originalLyrics: ColorLyricsResponse? = nil) throws -> Data {
     
-    // track id from URL path; player objects are nil on 9.1.6
+    writeDebugLog("[SpicyLyrics] 🎵 getLyricsDataForCurrentTrack 被调用: trackId=\(trackIdentifier)")
+    / track id from URL path; player objects are nil on 9.1.6
     // path: /color-lyrics/v2/track/{trackId}
     let trackIdentifier: String
     if let range = originalPath.range(of: #"/track/([a-zA-Z0-9]+)"#, options: .regularExpression) {
