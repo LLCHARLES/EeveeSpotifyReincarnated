@@ -235,7 +235,6 @@ private func loadCustomLyricsForCurrentTrack() throws -> ColorLyricsResponse {
     case .petit:
         repository = petitLyricsRepository
     case .spicylyrics:
-        writeDebugLog("[SpicyLyrics] 🎯 使用 SpicyLyricsRepository")
         repository = SpicyLyricsRepository.shared
     case .notReplaced:
         throw LyricsError.invalidSource
