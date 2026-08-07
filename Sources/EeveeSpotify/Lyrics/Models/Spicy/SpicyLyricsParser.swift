@@ -1,5 +1,9 @@
 import Foundation
 
+private func traditionalToSimplified(_ text: String) -> String {
+    return text.applyingTransform(StringTransform("Traditional-Simplified"), reverse: false) ?? text
+}
+
 enum SpicyLyricsParserError: Error {
     case invalidData
     case missingLyrics
