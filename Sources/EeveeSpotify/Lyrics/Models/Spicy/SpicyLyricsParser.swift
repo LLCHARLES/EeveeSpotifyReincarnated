@@ -67,14 +67,23 @@ struct SpicyLyricsParser {
         let type = lyricsObj["Type"]?.stringValue ?? "Static"
         
         // 9. 根据类型解析
+        let dto: LyricsDto
         switch type {
         case "Syllable":
-            return parseSyllableLyrics(lyricsObj)
+            dto = parseSyllableLyrics(lyricsObj)
         case "Line":
-            return parseLineLyrics(lyricsObj)
+            dto = parseLineLyrics(lyricsObj)
         default:
-            return parseStaticLyrics(lyricsObj)
+            dto = parseStaticLyrics(lyricsObj)
         }
+    
+    // ✅ 加日志：打印解析结果
+        print("[SpicyLyrics] ✅ 解析完成：\(dto.lines.count) 行，isSyllableSynced=\(dto.isSyllableSynced)")
+        for (index, line) in dto.lines.enumerated() {
+            print("[SpicyLyrics]   第\(index+1)行: words=\(line.words), syllables=\(line.syllables?.count ?? 0)")
+        }
+    
+        return dto
     }
     
     // MARK: - Syllable 逐字歌词解析

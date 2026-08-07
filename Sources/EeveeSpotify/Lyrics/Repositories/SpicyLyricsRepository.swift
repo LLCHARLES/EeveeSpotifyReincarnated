@@ -115,8 +115,11 @@ class SpicyLyricsRepository: LyricsRepository {
             throw LyricsError.noSuchSong
         }
         let data = try performQuery(trackId: trackId)
-        
-        // ✅ 使用你的 SpicyLyricsParser（支持逐字歌词）
-        return try SpicyLyricsParser.parseLyrics(from: data)
+        let dto = try SpicyLyricsParser.parseLyrics(from: data)
+    
+    // ✅ 加日志
+        print("[SpicyLyrics] ✅ 返回 LyricsDto，行数: \(dto.lines.count)，isSyllableSynced=\(dto.isSyllableSynced)")
+    
+        return dto
     }
 }
