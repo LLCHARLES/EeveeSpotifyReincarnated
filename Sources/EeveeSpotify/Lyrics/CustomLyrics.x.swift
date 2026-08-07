@@ -389,7 +389,7 @@ func prefetchLyricsIfNeeded(trackId: String) {
 func getLyricsDataForCurrentTrack(_ originalPath: String, originalLyrics: ColorLyricsResponse? = nil) throws -> Data {
     
     writeDebugLog("[SpicyLyrics] 🎵 getLyricsDataForCurrentTrack 被调用: trackId=\(trackIdentifier)")
-    / track id from URL path; player objects are nil on 9.1.6
+    // track id from URL path; player objects are nil on 9.1.6
     // path: /color-lyrics/v2/track/{trackId}
     let trackIdentifier: String
     if let range = originalPath.range(of: #"/track/([a-zA-Z0-9]+)"#, options: .regularExpression) {
