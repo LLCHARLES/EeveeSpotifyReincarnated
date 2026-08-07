@@ -396,8 +396,6 @@ func getLyricsDataForCurrentTrack(_ originalPath: String, originalLyrics: ColorL
     } else {
         throw LyricsError.noCurrentTrack
     }
-
-    writeDebugLog("[SpicyLyrics] 🎵 getLyricsDataForCurrentTrack 被调用: trackId=\(trackIdentifier)")
     
     if trackIdentifier.isEmpty {
         throw LyricsError.noCurrentTrack
