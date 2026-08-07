@@ -58,13 +58,18 @@ struct SpicyLyricsParser {
     let unpacked = try SLObjPack.unpack(data)
     writeDebugLog("[SpicyLyrics] 🔓 SLObjPack 解包成功")
     
-    // 7. 提取 lyrics 对象
-    guard let lyricsObj = unpacked["lyrics"]?.objectValue else {
-        writeDebugLog("[SpicyLyrics] ❌ 没有 lyrics 对象")
-        writeDebugLog("[SpicyLyrics] 📦 unpacked keys: \(unpacked.objectValue?.keys.joined(separator: ", ") ?? "nil")")
+    // 7. 提取 lyrics 对象（数据可能在根级别，也可能在 "lyrics" 下）
+    let lyricsObj: [String: SLObjPackValue]
+    if let nested = unpacked["lyrics"]?.objectValue {
+        lyricsObj = nested
+        writeDebugLog("[SpicyLyrics] 📝 从 lyrics 字段提取数据")
+    } else if let root = unpacked.objectValue {
+        lyricsObj = root
+        writeDebugLog("[SpicyLyrics] 📝 从根级别提取数据，keys: \(root.keys.joined(separator: ", "))")
+    } else {
+        writeDebugLog("[SpicyLyrics] ❌ 无法提取歌词数据")
         throw SpicyLyricsParserError.missingLyrics
     }
-    writeDebugLog("[SpicyLyrics] 📝 lyricsObj keys: \(lyricsObj.keys.joined(separator: ", "))")
     
     // 8. 提取 type 字段
     let type = lyricsObj["Type"]?.stringValue ?? "Static"
